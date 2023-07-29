@@ -1,5 +1,7 @@
 /////////////////////////////////////////////////////// Setting ///////////////////////////////////////////////////////
 //jshint esversion:6
+require("dotenv").config();
+console.log(process.env);
 const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
@@ -13,13 +15,12 @@ app.set("view engine", "ejs");
 mongoose.connect("mongodb://127.0.0.1:27017/userDB");
 
 /////////////////////////////////////////////////////// Database ///////////////////////////////////////////////////////
-// An object is created by mongoose class
+// An object is created by smongoose class
 const userSchema = new mongoose.Schema({
   email: String,
   password: String,
 });
-const secret = "Thisisourlittlesecret.";  // call 'key'
-userSchema.plugin(encrypt, { secret: secret, encryptedFields: ["password"] });
+userSchema.plugin(encrypt, { secret: process.env.SECRET, encryptedFields: ["password"] });
 const User = new mongoose.model("User", userSchema);
 
 /////////////////////////////////////////////////////// Home route ///////////////////////////////////////////////////////
