@@ -6,7 +6,10 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
-const md5 = require("md5");
+
+// Using bcrypt
+const bcrypt = require("bcrypt");
+const saltRounds = 10;
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -36,15 +39,20 @@ app
   })
   .post((req, res) => {
     const username = req.body.username;
-    const password = md5(req.body.password);
+    const password = req.body.password;
     // Find exist email in database
     User.findOne({ email: username })
       .then((foundUser) => {
         // Check password from database (foundUser) match to password from login route
-        if (foundUser.password === password) {
-          // If pass match, server will render secrets.ejs
-          console.log("Password match!");
-          res.render("secrets");
+        if (foundUser) {
+          // Load hash from your password DB (foundUser.password) and compare with plain text (password from login page)
+          bcrypt.compare(password, foundUser.password, function (err, result) {
+            // change callback function to result. Avoid use 'req' to confuse when render ejs
+            if (result === true) {
+              console.log("Password match!");
+              res.render("secrets");
+            }
+          });
         }
       })
       .catch((err) => {
@@ -59,19 +67,21 @@ app
     res.render("register");
   })
   .post((req, res) => {
-    const newUser = new User({
-      email: req.body.username,
-      password: md5(req.body.password), // Turn into a irreverible hash
-    });
-    newUser
-      .save()
-      .then(() => {
-        console.log("Successfully register!");
-        res.render("secrets");
-      })
-      .catch((err) => {
-        console.log(err);
+    bcrypt.hash(req.body.password, saltRounds, function (err, hash) {
+      const newUser = new User({
+        email: req.body.username,
+        password: hash, // Turn into a irreverible hash
       });
+      newUser
+        .save()
+        .then(() => {
+          console.log("Successfully register!");
+          res.render("secrets");
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    });
   });
 
 /////////////////////////////////////////////////////// Listen route ///////////////////////////////////////////////////////
