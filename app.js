@@ -1,12 +1,12 @@
 /////////////////////////////////////////////////////// Setting ///////////////////////////////////////////////////////
 //jshint esversion:6
 require("dotenv").config();
-console.log(process.env);
+// console.log(process.env);
 const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
-var encrypt = require("mongoose-encryption");
+const md5 = require("md5");
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema({
   email: String,
   password: String,
 });
-userSchema.plugin(encrypt, { secret: process.env.SECRET, encryptedFields: ["password"] });
+
 const User = new mongoose.model("User", userSchema);
 
 /////////////////////////////////////////////////////// Home route ///////////////////////////////////////////////////////
@@ -35,11 +35,13 @@ app
     res.render("login");
   })
   .post((req, res) => {
+    const username = req.body.username;
+    const password = md5(req.body.password);
     // Find exist email in database
-    User.findOne({ email: req.body.username })
+    User.findOne({ email: username })
       .then((foundUser) => {
         // Check password from database (foundUser) match to password from login route
-        if (foundUser.password === req.body.password) {
+        if (foundUser.password === password) {
           // If pass match, server will render secrets.ejs
           console.log("Password match!");
           res.render("secrets");
@@ -59,7 +61,7 @@ app
   .post((req, res) => {
     const newUser = new User({
       email: req.body.username,
-      password: req.body.password,
+      password: md5(req.body.password), // Turn into a irreverible hash
     });
     newUser
       .save()
